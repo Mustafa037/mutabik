@@ -1,0 +1,33 @@
+name: expense-ocr
+
+services:
+  backend:
+    build:
+      context: ./backend
+      args:
+        PRELOAD_MODELS: "1"   # "0" = skip model download at build time
+    image: expense-ocr-backend:latest
+    restart: unless-stopped
+    environment:
+      LOG_LEVEL: INFO
+      OCR_WARMUP: "1"         # load the OCR model in the background at start-up
+    volumes:
+      - expense_data:/app/data   # SQLite database + stored receipt images
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+    image: expense-ocr-frontend:latest
+    restart: unless-stopped
+    environment:
+      API_URL: http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8501:8501"
+
+volumes:
+  expense_data:

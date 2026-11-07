@@ -1,0 +1,29 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime data (SQLite database, stored receipt images)
+data/
+*.db
+*.db-wal
+*.db-shm
+
+# OCR models are downloaded on first start
+.paddleocr/
+
+# Real receipt photos for measurement (privacy / copyright): keep them outside the repo, or here
+fis_seti/
+backend/eval/real/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local secrets / logs
+.env
+*.log

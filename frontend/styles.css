@@ -1,0 +1,1598 @@
+/* ==========================================================================
+   Fiş Mutabakat - tasarım sistemi (açık + koyu, sisteme göre)
+
+   Kaynaklar (ayrıntı: docs/DESIGN.md)
+   - Apple Human Interface Guidelines: anlamsal renk, kontrast, koyu mod katmanları,
+     tipografi hiyerarşisi, 44 pt dokunma hedefi, hareket azaltma, yazım dili.
+   - Emil Kowalski "skills": sık kullanılan kontrollerde hareket yok, basınca
+     scale(.97), hover yalnızca fare cihazlarında, ease-out, 300 ms altı süre,
+     tabular-nums, katmanlı yarı saydam gölge, mobilde 16 px giriş alanları.
+
+   Not: bu dosya <style> içinde enjekte edilir. HTML temizleyicisi "<" karakterli
+   stilleri sildiği için burada ham "<" kullanılmaz.
+   ========================================================================== */
+
+/* ---------- 1. Değişkenler ------------------------------------------------ */
+:root {
+  color-scheme: light dark;
+
+  --fm-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", Inter, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+
+  /* hareket (Emil Kowalski): güçlü ease-out, asla ease-in */
+  --fm-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --fm-press: 160ms;
+  --fm-hover: 150ms;
+
+  /* 8 pt ızgarası: 4 8 12 16 20 24 32 48. Yarıçaplar iç içe uyumlu */
+  --fm-r-sm: 8px;
+  --fm-r-md: 12px;
+  --fm-r-lg: 16px;
+
+  /* ---- açık görünüm ---- */
+  --fm-canvas: #f3f5f9;
+  --fm-surface: #ffffff;
+  --fm-surface-2: #f7f8fb;
+  --fm-surface-3: #eceff5;
+  --fm-thumb: #ffffff;
+  --fm-input-bg: #ffffff;
+  --fm-line: #e1e6ee;
+  --fm-line-strong: #cbd3e0;
+  --fm-control: #7c8aa0; /* kontrol kenarı, beyaza karşı 3,5:1 */
+
+  --fm-text: #0e1726; /* 17,9:1 */
+  --fm-text-2: #46536a; /* 7,8:1 */
+  --fm-text-3: #5b687d; /* 5,6:1 */
+
+  --fm-brand: #1f4fd8; /* beyaza karşı 6,6:1 */
+  --fm-brand-hover: #1a41b3;
+  --fm-brand-soft: #e8eefc;
+  --fm-brand-on-soft: #1b3fa8;
+  --fm-primary-bg: #1f4fd8;
+  --fm-primary-bg-hover: #1a41b3;
+  --fm-on-primary: #ffffff;
+  --fm-ring: rgba(31, 79, 216, 0.28);
+  --fm-bar: #3f6de6;
+
+  --fm-ok-text: #12663a;
+  --fm-ok-bg: #e6f5ec;
+  --fm-ok-fill: #1b8a4e;
+  --fm-ok-line: rgba(27, 138, 78, 0.3);
+  --fm-warn-text: #8a4b08;
+  --fm-warn-bg: #fdf1dc;
+  --fm-warn-fill: #b86e00;
+  --fm-warn-line: rgba(184, 110, 0, 0.32);
+  --fm-bad-text: #b3261e;
+  --fm-bad-bg: #fceae8;
+  --fm-bad-fill: #d92d20;
+  --fm-bad-line: rgba(217, 45, 32, 0.3);
+
+  /* yarı saydam, katmanlı gölge: tam çizgi yerine ince halka + yumuşak derinlik */
+  --fm-shadow-card: 0 0 0 1px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.05),
+    0 10px 24px -14px rgba(15, 23, 42, 0.14);
+  --fm-shadow-pop: 0 0 0 1px rgba(15, 23, 42, 0.08), 0 16px 36px -10px rgba(15, 23, 42, 0.28);
+  --fm-img-filter: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* koyu mod: daha loş zemin, daha parlak ön plan, yükseltilmiş yüzeyler daha açık (HIG) */
+    --fm-canvas: #0a101c;
+    --fm-surface: #121a2b;
+    --fm-surface-2: #182238;
+    --fm-surface-3: #202c47;
+    --fm-thumb: #2c3b5e;
+    --fm-input-bg: #182238;
+    --fm-line: #26324a;
+    --fm-line-strong: #364562;
+    --fm-control: #66759a;
+
+    --fm-text: #e9eef8;
+    --fm-text-2: #aeb9ce;
+    --fm-text-3: #8f9cb5;
+
+    --fm-brand: #86a9ff;
+    --fm-brand-hover: #a6c0ff;
+    --fm-brand-soft: #1b2a52;
+    --fm-brand-on-soft: #b7cbff;
+    --fm-primary-bg: #2f5be0;
+    --fm-primary-bg-hover: #3e6bef;
+    --fm-on-primary: #ffffff;
+    --fm-ring: rgba(134, 169, 255, 0.35);
+    --fm-bar: #5c86f2;
+
+    --fm-ok-text: #6fe0a5;
+    --fm-ok-bg: #10301f;
+    --fm-ok-fill: #3dc27a;
+    --fm-ok-line: rgba(61, 194, 122, 0.35);
+    --fm-warn-text: #f6be55;
+    --fm-warn-bg: #33250a;
+    --fm-warn-fill: #e0a030;
+    --fm-warn-line: rgba(224, 160, 48, 0.38);
+    --fm-bad-text: #ff9890;
+    --fm-bad-bg: #3b1614;
+    --fm-bad-fill: #f0584d;
+    --fm-bad-line: rgba(240, 88, 77, 0.4);
+
+    --fm-shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 12px 28px -16px rgba(0, 0, 0, 0.7);
+    --fm-shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 18px 40px -10px rgba(0, 0, 0, 0.7);
+    /* HIG: içerikteki beyaz zeminler koyu modda parlamasın */
+    --fm-img-filter: brightness(0.9);
+  }
+}
+
+/* Artırılmış kontrast tercihi: kenarlar ve ikincil metin belirginleşir */
+@media (prefers-contrast: more) {
+  :root {
+    --fm-line: var(--fm-control);
+    --fm-line-strong: var(--fm-control);
+    --fm-text-2: var(--fm-text);
+    --fm-text-3: var(--fm-text-2);
+  }
+}
+
+/* ---------- 2. Sayfa zemini ve Streamlit kabuğu --------------------------- */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stApp {
+  background: var(--fm-canvas);
+  color: var(--fm-text);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:root :is(p, span, div, li, label, button, input, textarea, select, small, td, th, h1, h2, h3, h4, h5, h6, a, caption, dd, dt, figcaption):not([data-testid="stIconMaterial"]):not([data-testid="stAlertDynamicIcon"]) {
+  font-family: var(--fm-font) !important;
+}
+
+/* CSS'i taşıyan öğe boşluk bırakmasın */
+:root [data-testid="stElementContainer"]:has(> [data-testid="stMarkdown"] style) {
+  display: none !important;
+}
+
+:root [data-testid="stHeader"],
+:root [data-testid="stToolbar"],
+:root [data-testid="stDecoration"],
+:root footer,
+:root #MainMenu {
+  display: none !important;
+}
+
+:root [data-testid="stAppViewContainer"],
+:root [data-testid="stMain"] {
+  background: transparent;
+}
+
+:root [data-testid="stMainBlockContainer"] {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 28px 24px 72px;
+}
+
+:root [data-testid="stVerticalBlock"] {
+  gap: 16px;
+}
+
+/* ---------- 3. Tipografi (HIG hiyerarşisi: ağırlık, boyut, renk) ---------- */
+/* Streamlit çekirdek markdown kapsayıcısına -1rem alt boşluk verir (p'nin 1rem'ini götürmek için) */
+:root [data-testid="stMarkdownContainer"] {
+  margin-bottom: 0;
+}
+
+:root [data-testid="stMarkdownContainer"] p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--fm-text);
+}
+
+:root [data-testid="stCaptionContainer"],
+:root [data-testid="stCaptionContainer"] p {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-3);
+}
+
+:root [data-testid="stWidgetLabel"] {
+  margin-bottom: 6px;
+}
+
+:root [data-testid="stWidgetLabel"] p {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+:root a {
+  color: var(--fm-brand);
+  text-underline-offset: 3px;
+}
+
+/* ---------- 4. Odak görünürlüğü ------------------------------------------- */
+:root :is(button, a, input, textarea, select, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid var(--fm-brand);
+  outline-offset: 2px;
+}
+
+/* ---------- 5. Düğmeler ----------------------------------------------------
+   Basınca scale(.97); hover yalnızca fare/trackpad'de; yalnızca belirli
+   özellikler geçişli (transition: all yok). */
+:root :is(.stButton, .stDownloadButton, [data-testid="stFormSubmitButton"]) button,
+:root [data-testid="stPopoverButton"],
+:root [data-testid="stFileUploaderDropzone"] button,
+:root [data-testid="stCameraInputButton"] {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--fm-line-strong);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  box-shadow: none;
+  touch-action: manipulation;
+  transition: transform var(--fm-press) var(--fm-ease-out), background-color var(--fm-hover) ease,
+    border-color var(--fm-hover) ease, color var(--fm-hover) ease;
+}
+
+:root :is(.stButton, .stDownloadButton, [data-testid="stFormSubmitButton"]) button p,
+:root [data-testid="stPopoverButton"] p {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+:root button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root :is(.stButton, .stDownloadButton) button:not(:disabled):hover,
+  :root [data-testid="stPopoverButton"]:hover,
+  :root [data-testid="stFileUploaderDropzone"] button:hover {
+    background: var(--fm-surface-3);
+    border-color: var(--fm-control);
+    color: var(--fm-text);
+  }
+}
+
+/* Streamlit odaklanmış düğmeyi vurgu renginde (kırmızı) boyar; marka stiline çevir */
+:root :is(.stButton, .stDownloadButton) button:focus:not(:active),
+:root [data-testid="stPopoverButton"]:focus:not(:active),
+:root [data-testid="stFileUploaderDropzone"] button:focus:not(:active) {
+  border-color: var(--fm-control);
+  color: var(--fm-text);
+  background: var(--fm-surface);
+  box-shadow: none;
+}
+
+:root button[data-testid="stBaseButton-primary"]:focus:not(:active),
+:root button[data-testid="stBaseButton-primaryFormSubmit"]:focus:not(:active) {
+  background: var(--fm-primary-bg);
+  border-color: transparent;
+  color: var(--fm-on-primary);
+}
+
+:root button[data-testid="stBaseButton-tertiary"]:focus:not(:active) {
+  background: transparent;
+  border-color: transparent;
+  color: var(--fm-brand);
+}
+
+:root button[data-testid="stBaseButton-primary"]:active,
+:root button[data-testid="stBaseButton-primaryFormSubmit"]:active {
+  background: var(--fm-primary-bg-hover);
+  border-color: transparent;
+  color: var(--fm-on-primary);
+}
+
+/* birincil: görünümde en fazla bir-iki tane (HIG) */
+:root button[data-testid="stBaseButton-primary"],
+:root button[data-testid="stBaseButton-primaryFormSubmit"] {
+  background: var(--fm-primary-bg);
+  border-color: transparent;
+  color: var(--fm-on-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root button[data-testid="stBaseButton-primary"]:hover,
+  :root button[data-testid="stBaseButton-primaryFormSubmit"]:hover {
+    background: var(--fm-primary-bg-hover);
+    border-color: transparent;
+    color: var(--fm-on-primary);
+  }
+}
+
+:root button[data-testid="stBaseButton-tertiary"] {
+  border-color: transparent;
+  background: transparent;
+  color: var(--fm-brand);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root button[data-testid="stBaseButton-tertiary"]:hover {
+    background: var(--fm-brand-soft);
+    border-color: transparent;
+    color: var(--fm-brand-on-soft);
+  }
+}
+
+:root button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* yıkıcı eylem: birincil rol almaz, kırmızı çerçeveli ikincil (HIG) */
+:root [class*="st-key-delete_confirm"] button {
+  color: var(--fm-bad-text);
+  border-color: var(--fm-bad-line);
+  background: var(--fm-bad-bg);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root [class*="st-key-delete_confirm"] button:hover {
+    background: var(--fm-bad-bg);
+    border-color: var(--fm-bad-fill);
+    color: var(--fm-bad-text);
+  }
+}
+
+/* ---------- 6. Segmentli kontrol (iOS tarzı) -------------------------------- */
+:root [data-testid="stButtonGroup"] [data-baseweb="button-group"] {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  width: 100%;
+  max-width: none;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--fm-surface-3);
+}
+
+/* baseweb grubunun ::after öğesi (flex: 10000) boş alanı yutar; kapat */
+:root [data-testid="stButtonGroup"] [data-baseweb="button-group"]::after {
+  content: none;
+  display: none;
+}
+
+:root [data-testid="stButtonGroup"] button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fm-text-2);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+:root [data-testid="stButtonGroup"] button p {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+:root [data-testid="stButtonGroup"] button[kind="segmented_controlActive"] {
+  background: var(--fm-thumb);
+  color: var(--fm-text);
+  box-shadow: 0 0 0 1px var(--fm-line), 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root [data-testid="stButtonGroup"] button[kind="segmented_control"]:hover {
+    background: transparent;
+    color: var(--fm-text);
+    border: 0;
+  }
+}
+
+/* ---------- 7. Kartlar (anahtarı card_ ile başlayan kaplayıcılar) ---------- */
+:root [data-testid="stVerticalBlockBorderWrapper"]:has(> div > .stVerticalBlock[class*="st-key-card_"]) {
+  padding: 20px;
+  border: 0;
+  border-radius: var(--fm-r-lg);
+  background: var(--fm-surface);
+  box-shadow: var(--fm-shadow-card);
+}
+
+:root [data-testid="stVerticalBlockBorderWrapper"]:has(> div > .stVerticalBlock[class*="st-key-card_"]) > div > .stVerticalBlock {
+  gap: 16px;
+}
+
+/* ---------- 8. Form alanları ------------------------------------------------ */
+:root [data-baseweb="input"],
+:root [data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child {
+  min-height: 40px;
+  border: 1px solid var(--fm-control);
+  border-radius: 10px;
+  background: var(--fm-input-bg);
+  transition: border-color var(--fm-hover) ease, box-shadow var(--fm-hover) ease;
+}
+
+:root [data-baseweb="base-input"] {
+  background: transparent;
+  border-radius: 10px;
+}
+
+:root [data-baseweb="input"] input,
+:root [data-testid="stSelectbox"] [data-baseweb="select"] div {
+  color: var(--fm-text);
+  font-size: 15px;
+}
+
+:root [data-baseweb="input"] input::placeholder {
+  color: var(--fm-text-3);
+  opacity: 1;
+}
+
+:root [data-baseweb="input"]:focus-within,
+:root [data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child:focus-within {
+  border-color: var(--fm-brand);
+  box-shadow: 0 0 0 3px var(--fm-ring);
+}
+
+:root [data-testid="stSelectbox"] svg,
+:root [data-baseweb="select"] svg {
+  color: var(--fm-text-2);
+  fill: var(--fm-text-2);
+}
+
+/* tutar alanları: sağa hizalı, sabit genişlikli rakamlar */
+:root [class*="st-key-sub_"] input,
+:root [class*="st-key-tax_"] input,
+:root [class*="st-key-total_"] input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* "Press Enter..." ipuçları İngilizce; yerine etiket yeterli */
+:root [data-testid="InputInstructions"] {
+  display: none;
+}
+
+/* açılır menüler ve takvim (portal içinde) */
+[data-baseweb="popover"] > div {
+  border-radius: 12px;
+  box-shadow: var(--fm-shadow-pop);
+}
+
+[data-baseweb="popover"] [data-baseweb="menu"],
+[data-baseweb="popover"] ul[role="listbox"] {
+  background: var(--fm-surface-2);
+  color: var(--fm-text);
+}
+
+[data-baseweb="popover"] li {
+  color: var(--fm-text);
+  font-family: var(--fm-font);
+}
+
+[data-baseweb="calendar"] {
+  background: var(--fm-surface-2);
+  color: var(--fm-text);
+  font-family: var(--fm-font);
+}
+
+/* takvim: yerel koyu tema başlık / hücre renklerini marka paletiyle değiştir */
+[data-baseweb="calendar"] div:has(> [role="presentation"]),
+[data-baseweb="calendar"] [role="presentation"] {
+  background-color: transparent;
+}
+
+/* her günün ::after öğesi vurgu dairesidir: ay dışı hücreler boş, seçili gün marka renginde */
+[data-baseweb="calendar"] [role="gridcell"]::after {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+[data-baseweb="calendar"] [role="gridcell"]:focus-visible::after {
+  border-color: var(--fm-brand);
+}
+
+[data-baseweb="calendar"] [role="gridcell"][aria-label^="Selected"]::after {
+  background-color: var(--fm-primary-bg);
+}
+
+[data-baseweb="calendar"] [role="gridcell"][aria-label^="Selected"] {
+  color: var(--fm-on-primary);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  [data-baseweb="calendar"] [role="gridcell"][aria-label^="Choose"]:hover::after {
+    background-color: var(--fm-surface-3);
+  }
+}
+
+/* form kapsayıcısı */
+:root [data-testid="stForm"] {
+  padding: 20px;
+  border: 0;
+  border-radius: var(--fm-r-lg);
+  background: var(--fm-surface);
+  box-shadow: var(--fm-shadow-card);
+}
+
+:root [data-testid="stForm"] [data-testid="stVerticalBlock"] {
+  gap: 14px;
+}
+
+/* ---------- 9. Dosya yükleme ve kamera (Türkçe metinler CSS ile) ----------- */
+:root [data-testid="stFileUploaderDropzone"] {
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 16px;
+  border: 1.5px dashed var(--fm-control);
+  border-radius: 14px;
+  background: var(--fm-surface-2);
+  transition: border-color var(--fm-hover) ease, background-color var(--fm-hover) ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root [data-testid="stFileUploaderDropzone"]:hover {
+    border-color: var(--fm-brand);
+    background: var(--fm-brand-soft);
+  }
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] {
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  text-align: center;
+  gap: 6px;
+  color: var(--fm-text-2);
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] svg {
+  width: 32px;
+  height: 32px;
+  color: var(--fm-text-3);
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] > div > span {
+  font-size: 0;
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] > div > span::after {
+  content: "Fiş görselini buraya bırakın";
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fm-text);
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] small {
+  font-size: 0;
+}
+
+:root [data-testid="stFileUploaderDropzoneInstructions"] small::after {
+  content: "JPG, PNG, WebP veya BMP · en fazla 20 MB";
+  font-size: 13px;
+  color: var(--fm-text-3);
+}
+
+:root [data-testid="stFileUploaderDropzone"] button {
+  font-size: 0;
+}
+
+:root [data-testid="stFileUploaderDropzone"] button::after {
+  content: "Dosya seç";
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:root [data-testid="stFileUploaderFile"] {
+  font-size: 14px;
+}
+
+:root [data-testid="stCameraInputWebcamComponent"] {
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--fm-surface-2);
+}
+
+/* ---------- 10. Uyarı kutuları (Streamlit alert) ---------------------------- */
+:root [data-testid="stAlert"] [data-baseweb="notification"] {
+  padding: 12px 14px;
+  border: 1px solid var(--fm-line);
+  border-radius: var(--fm-r-md);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+}
+
+:root [data-testid="stAlert"] [data-testid="stMarkdownContainer"] p {
+  color: inherit;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+:root [data-testid="stAlert"]:has([data-testid="stAlertContentSuccess"]) [data-baseweb="notification"] {
+  background: var(--fm-ok-bg);
+  border-color: var(--fm-ok-line);
+  color: var(--fm-ok-text);
+}
+
+:root [data-testid="stAlert"]:has([data-testid="stAlertContentWarning"]) [data-baseweb="notification"] {
+  background: var(--fm-warn-bg);
+  border-color: var(--fm-warn-line);
+  color: var(--fm-warn-text);
+}
+
+:root [data-testid="stAlert"]:has([data-testid="stAlertContentError"]) [data-baseweb="notification"] {
+  background: var(--fm-bad-bg);
+  border-color: var(--fm-bad-line);
+  color: var(--fm-bad-text);
+}
+
+:root [data-testid="stAlert"]:has([data-testid="stAlertContentInfo"]) [data-baseweb="notification"] {
+  background: var(--fm-brand-soft);
+  border-color: transparent;
+  color: var(--fm-brand-on-soft);
+}
+
+:root [data-testid="stSpinner"] {
+  color: var(--fm-text-2);
+}
+
+/* ---------- 11. Görseller ---------------------------------------------------- */
+:root [data-testid="stImage"] img {
+  border-radius: var(--fm-r-md);
+  filter: var(--fm-img-filter);
+}
+
+:root [data-testid="stImageCaption"] {
+  font-size: 13px;
+  color: var(--fm-text-3);
+}
+
+/* ---------- 12. Bileşenler (ui.py) ------------------------------------------ */
+:root .fm-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+:root .fm-ico {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* uygulama çubuğu */
+:root .fm-appbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 4px;
+}
+
+:root .fm-brandmark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: var(--fm-primary-bg);
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+:root .fm-brandmark .fm-ico {
+  width: 22px;
+  height: 22px;
+}
+
+:root .fm-brandname {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: -0.02em;
+  color: var(--fm-text);
+}
+
+:root .fm-brandsub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+/* kart başlığı */
+:root .fm-card {
+  padding: 20px;
+  border-radius: var(--fm-r-lg);
+  background: var(--fm-surface);
+  box-shadow: var(--fm-shadow-card);
+}
+
+:root .fm-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+:root .fm-card-title {
+  margin: 0;
+  padding: 0;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 22px;
+  letter-spacing: -0.01em;
+  color: var(--fm-text);
+}
+
+:root .fm-card-sub {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+/* hap ve çipler: durum renkle birlikte simge ve metinle de verilir */
+:root .fm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px 2px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+:root .fm-pill .fm-ico {
+  width: 14px;
+  height: 14px;
+}
+
+:root .fm-pill--ok {
+  background: var(--fm-ok-bg);
+  color: var(--fm-ok-text);
+}
+
+:root .fm-pill--warn {
+  background: var(--fm-warn-bg);
+  color: var(--fm-warn-text);
+}
+
+:root .fm-pill--neutral {
+  padding-left: 10px;
+  background: var(--fm-surface-3);
+  color: var(--fm-text-2);
+}
+
+:root .fm-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+:root .fm-chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--fm-surface-3);
+  color: var(--fm-text-2);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* sonuç kartı */
+:root .fm-status {
+  display: grid;
+  gap: 16px;
+}
+
+:root .fm-status-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+:root .fm-status-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+:root .fm-status-icon .fm-ico {
+  width: 22px;
+  height: 22px;
+}
+
+:root .fm-status--ok .fm-status-icon {
+  background: var(--fm-ok-bg);
+  color: var(--fm-ok-text);
+}
+
+:root .fm-status--warn .fm-status-icon {
+  background: var(--fm-warn-bg);
+  color: var(--fm-warn-text);
+}
+
+:root .fm-status-name {
+  margin: 0;
+  padding: 0;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: -0.02em;
+}
+
+:root .fm-status--ok .fm-status-name {
+  color: var(--fm-ok-text);
+}
+
+:root .fm-status--warn .fm-status-name {
+  color: var(--fm-warn-text);
+}
+
+:root .fm-status-who {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fm-text-2);
+  overflow-wrap: anywhere;
+}
+
+:root .fm-explain {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--fm-r-md);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+:root .fm-status--ok .fm-explain {
+  background: var(--fm-ok-bg);
+  color: var(--fm-ok-text);
+}
+
+:root .fm-status--warn .fm-explain {
+  background: var(--fm-warn-bg);
+  color: var(--fm-warn-text);
+}
+
+/* defter satırları: matrah + KDV = toplam */
+:root .fm-ledger {
+  display: grid;
+  max-width: 440px;
+  margin: 0;
+}
+
+:root .fm-ledger-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--fm-line);
+}
+
+:root .fm-ledger-row dt {
+  margin: 0;
+  font-size: 14px;
+  color: var(--fm-text-2);
+}
+
+:root .fm-ledger-row dd {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--fm-text);
+}
+
+:root .fm-op {
+  display: inline-block;
+  width: 16px;
+  color: var(--fm-text-3);
+  font-weight: 500;
+}
+
+:root .fm-ledger-row--total {
+  border-top: 1.5px solid var(--fm-text);
+  border-bottom: 0;
+}
+
+:root .fm-ledger-row--total dt {
+  font-weight: 600;
+  color: var(--fm-text);
+}
+
+:root .fm-ledger-row--total dd {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+:root .fm-ledger-row--diff {
+  border-bottom: 0;
+}
+
+:root .fm-ledger-row--diff dt,
+:root .fm-ledger-row--diff dd {
+  color: var(--fm-bad-text);
+}
+
+/* bilgi notları */
+:root .fm-note {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--fm-r-md);
+  background: var(--fm-brand-soft);
+  color: var(--fm-brand-on-soft);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+:root .fm-note .fm-ico {
+  margin-top: 1px;
+}
+
+:root .fm-note-title {
+  margin: 0 0 2px;
+  font-weight: 600;
+}
+
+:root .fm-note ul {
+  margin: 0;
+  padding: 0 0 0 18px;
+}
+
+:root .fm-note li {
+  margin: 2px 0;
+  padding: 0;
+}
+
+:root .fm-note-text {
+  margin: 0;
+}
+
+/* boş durum: ne yapılacağını söyler */
+:root .fm-empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+:root .fm-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--fm-surface-3);
+  color: var(--fm-text-2);
+}
+
+:root .fm-empty-icon .fm-ico {
+  width: 24px;
+  height: 24px;
+}
+
+:root .fm-empty-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fm-text);
+}
+
+:root .fm-empty-text {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fm-text-2);
+}
+
+/* güven göstergesi */
+:root .fm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+:root .fm-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+:root .fm-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+:root .fm-dot--ok {
+  background: #1b8a4e;
+}
+
+:root .fm-dot--mid {
+  background: #d98b06;
+}
+
+:root .fm-dot--low {
+  background: #d92d20;
+}
+
+/* bölüm başlığı */
+:root .fm-section {
+  margin: 8px 0 0;
+}
+
+:root .fm-section-title {
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 25px;
+  letter-spacing: -0.02em;
+  color: var(--fm-text);
+}
+
+:root .fm-section-sub {
+  margin: 2px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--fm-text-2);
+}
+
+/* KPI kartları */
+:root .fm-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  gap: 16px;
+}
+
+:root .fm-kpi {
+  min-width: 0;
+  padding: 16px 18px;
+}
+
+:root .fm-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+:root .fm-kpi-label .fm-ico {
+  width: 16px;
+  height: 16px;
+}
+
+:root .fm-kpi--ok .fm-kpi-label .fm-ico {
+  color: var(--fm-ok-fill);
+}
+
+:root .fm-kpi--warn .fm-kpi-label .fm-ico {
+  color: var(--fm-warn-fill);
+}
+
+:root .fm-kpi-value {
+  margin: 6px 0 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--fm-text);
+  overflow-wrap: anywhere;
+}
+
+:root .fm-kpi-unit {
+  margin-left: 4px;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--fm-text-2);
+}
+
+:root .fm-kpi-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-3);
+}
+
+:root .fm-meter {
+  display: flex;
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fm-surface-3);
+}
+
+:root .fm-meter-ok {
+  background: var(--fm-ok-fill);
+}
+
+:root .fm-meter-warn {
+  background: var(--fm-warn-fill);
+}
+
+/* grafikler: sade çubuklar, her değer etiketli (HIG: grafik başlığı + özet) */
+:root .fm-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+:root .fm-chart {
+  min-width: 0;
+  margin: 0;
+}
+
+:root .fm-bars {
+  display: grid;
+  gap: 14px;
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+:root .fm-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  align-items: baseline;
+  margin: 0;
+  padding: 0;
+}
+
+:root .fm-bar-label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fm-text);
+}
+
+:root .fm-bar-value {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--fm-text);
+}
+
+:root .fm-bar-share {
+  margin-left: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fm-text-3);
+}
+
+:root .fm-bar-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--fm-surface-3);
+}
+
+:root .fm-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fm-bar);
+}
+
+:root .fm-cols {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  height: 216px;
+  margin: 18px 0 0;
+  padding: 0;
+  overflow-x: auto;
+  list-style: none;
+}
+
+:root .fm-cols li {
+  display: flex;
+  flex: 1 0 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 40px;
+  margin: 0;
+  padding: 0;
+}
+
+:root .fm-col-val {
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--fm-text);
+}
+
+:root .fm-col-bar {
+  display: block;
+  width: 100%;
+  max-width: 56px;
+  border-radius: 6px 6px 2px 2px;
+  background: var(--fm-bar);
+}
+
+:root .fm-col-label {
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 15px;
+  text-align: center;
+  color: var(--fm-text-2);
+}
+
+:root .fm-col-label small {
+  display: block;
+  font-size: 11px;
+  color: var(--fm-text-3);
+}
+
+/* tablo: sayılar sağa hizalı ve sabit genişlikli, tutarlar asla kısaltılmaz */
+:root .fm-table-wrap {
+  overflow-x: auto;
+}
+
+:root .fm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+:root .fm-table th {
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--fm-line);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: left;
+  white-space: nowrap;
+  color: var(--fm-text-3);
+}
+
+:root .fm-table th.fm-num {
+  text-align: right;
+}
+
+:root .fm-table td {
+  padding: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--fm-line);
+  vertical-align: middle;
+  color: var(--fm-text);
+}
+
+:root .fm-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+:root .fm-table tr {
+  border: 0;
+  background: transparent;
+}
+
+:root .fm-table .fm-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+:root .fm-table td.fm-total {
+  font-weight: 600;
+}
+
+:root .fm-table .fm-id,
+:root .fm-table .fm-date {
+  white-space: nowrap;
+  color: var(--fm-text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+:root .fm-table .fm-status-cell {
+  white-space: nowrap;
+}
+
+:root .fm-table .fm-merchant {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-width: 140px;
+  max-width: 340px;
+  overflow-wrap: anywhere;
+}
+
+:root .fm-table .fm-muted {
+  color: var(--fm-text-3);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :root .fm-table tbody tr:hover td {
+    background: var(--fm-surface-2);
+  }
+}
+
+/* popover içi (birleştir / sil) */
+[data-testid="stPopoverBody"],
+[data-baseweb="popover"] [data-testid="stVerticalBlockBorderWrapper"] {
+  background: var(--fm-surface-2);
+}
+
+/* ---------- 13. Örnek fiş satırları --------------------------------------- */
+:root .fm-sample-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--fm-text);
+}
+
+:root .fm-sample-hint {
+  margin: 2px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--fm-text-2);
+}
+
+:root [class*="st-key-refresh_data"] [data-testid="stButton"] {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* "inline_" kapsayıcıları: sütunlar telefonda da yan yana kalır (tarih/para birimi, tutarlar) */
+:root [class*="st-key-inline_"] [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap !important;
+  gap: 12px;
+}
+
+:root [class*="st-key-inline_"] [data-testid="stColumn"] {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+:root [class*="st-key-sample_row_"] {
+  padding: 10px 12px;
+  border-radius: var(--fm-r-md);
+  background: var(--fm-surface-2);
+}
+
+:root [class*="st-key-sample_row_"] [data-testid="stHorizontalBlock"] {
+  flex-wrap: nowrap !important;
+  gap: 12px;
+  align-items: center;
+}
+
+:root [class*="st-key-sample_row_"] [data-testid="stColumn"] {
+  min-width: 0 !important;
+}
+
+:root [class*="st-key-sample_row_"] [data-testid="stColumn"]:first-child {
+  flex: 0 0 56px !important;
+  width: 56px !important;
+}
+
+:root [class*="st-key-sample_row_"] [data-testid="stColumn"]:last-child {
+  flex: 0 0 auto !important;
+  width: auto !important;
+}
+
+:root [class*="st-key-sample_row_"] [data-testid="stImage"] img {
+  width: 56px;
+  height: 72px;
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: top;
+}
+
+/* ---------- 14. Duyarlı düzen ------------------------------------------------ */
+@media (max-width: 900px) {
+  :root [data-testid="stMainBlockContainer"] {
+    padding: 20px 16px 56px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root [data-testid="stVerticalBlockBorderWrapper"]:has(> div > .stVerticalBlock[class*="st-key-card_"]),
+  :root [data-testid="stForm"],
+  :root .fm-card {
+    padding: 16px;
+  }
+
+  :root .fm-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  :root .fm-kpi {
+    padding: 14px;
+  }
+
+  :root .fm-kpi-value {
+    font-size: 22px;
+    line-height: 28px;
+  }
+
+  :root .fm-charts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  :root .fm-table .fm-hide-sm {
+    display: none;
+  }
+
+  :root .fm-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  :root .fm-table,
+  :root .fm-table tbody {
+    display: block;
+  }
+
+  :root .fm-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "merchant total" "date status";
+    gap: 6px 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--fm-line);
+  }
+
+  :root .fm-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  :root .fm-table td {
+    display: block;
+    padding: 0;
+    border: 0;
+  }
+
+  :root .fm-table td.fm-merchant-cell {
+    grid-area: merchant;
+  }
+
+  :root .fm-table td.fm-total {
+    grid-area: total;
+  }
+
+  :root .fm-table td.fm-date {
+    grid-area: date;
+  }
+
+  :root .fm-table td.fm-status-cell {
+    grid-area: status;
+    text-align: right;
+  }
+
+  :root .fm-table .fm-merchant {
+    min-width: 0;
+    max-width: none;
+    font-weight: 500;
+  }
+
+  :root .fm-status-name {
+    font-size: 20px;
+    line-height: 26px;
+  }
+}
+
+/* dokunmatik: 44 pt hedef, iOS'ta yakınlaştırmayı tetiklemeyen 16 px giriş (HIG + mobil) */
+@media (pointer: coarse) {
+  :root :is(.stButton, .stDownloadButton, [data-testid="stFormSubmitButton"]) button,
+  :root [data-testid="stPopoverButton"],
+  :root [data-testid="stCameraInputButton"] {
+    min-height: 44px;
+  }
+
+  :root [data-testid="stButtonGroup"] button {
+    min-height: 40px;
+  }
+
+  :root [data-baseweb="input"],
+  :root [data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  :root input,
+  :root textarea,
+  :root [data-baseweb="select"] input {
+    font-size: 16px;
+  }
+}
+
+/* ---------- 15. Hareket azaltma: dönüşüm hareketi kalkar, renk geçişi kalır -- */
+@media (prefers-reduced-motion: reduce) {
+  :root button:not(:disabled):active {
+    transform: none;
+  }
+
+  :root * {
+    scroll-behavior: auto !important;
+  }
+}

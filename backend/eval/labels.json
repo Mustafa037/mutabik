@@ -1,0 +1,17 @@
+{
+  "ornek_market_tr.png": {
+    "merchant_name": "ORNEK MARKET A.S", "date": "2026-11-04",
+    "subtotal_amount": "96.80", "tax_amount": "9.68", "total_amount": "106.48",
+    "currency": "TRY", "category": "grocery", "status": "verified"
+  },
+  "corner_cafe_en.png": {
+    "merchant_name": "CORNER CAFE", "date": "2026-11-04",
+    "subtotal_amount": "10.00", "tax_amount": "0.80", "total_amount": "10.80",
+    "currency": "USD", "category": "food_drink", "status": "verified"
+  },
+  "yildiz_kirtasiye_uyumsuz_tr.png": {
+    "merchant_name": "YILDIZ KIRTASIYE LTD. STI.", "date": "2026-11-02",
+    "subtotal_amount": "100.00", "tax_amount": "20.00", "total_amount": "130.00",
+    "currency": "TRY", "category": "stationery", "status": "flagged_for_review"
+  }
+}

@@ -1,0 +1,23 @@
+# =============================================================================
+# expense-ocr-system / backend
+# Target runtime: Python 3.10 or 3.11  (paddlepaddle 2.6.x ships no 3.13 wheels)
+# CPU only. No paid / cloud APIs.
+# =============================================================================
+
+# --- Web framework -----------------------------------------------------------
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.20          # multipart/form-data (receipt image uploads)
+pydantic==2.10.4
+pydantic-settings==2.7.0          # env-driven configuration (core/config.py)
+
+# --- Database ----------------------------------------------------------------
+SQLAlchemy[asyncio]==2.0.36       # [asyncio] extra pulls in greenlet
+aiosqlite==0.20.0                 # async SQLite driver
+
+# --- Computer vision / OCR (CPU) ---------------------------------------------
+numpy==1.26.4                     # paddlepaddle 2.6.x requires numpy < 2.0
+opencv-python-headless==4.10.0.84 # no GUI/X11 dependencies -> suits containers
+Pillow==10.4.0
+paddlepaddle==2.6.2               # CPU build (the default PyPI wheel)
+paddleocr==2.10.0                 # PP-OCRv4 (en) + latin model (tr)

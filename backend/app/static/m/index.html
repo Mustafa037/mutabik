@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1f4fd8">
+  <meta name="color-scheme" content="light dark">
+  <title>Fiş Okuyucu</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Fiş Okuyucu</h1>
+    <button id="install" class="chip" type="button" hidden>Ana ekrana ekle</button>
+  </header>
+
+  <main id="view-capture">
+    <label class="shutter" for="cam">
+      <svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path fill="currentColor" d="M9 3 7.2 5H4a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3.2L15 3H9Zm3 5a5 5 0 1 1 0 10 5 5 0 0 1 0-10Zm0 2a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/></svg>
+      <span>Fiş çek</span>
+    </label>
+    <input id="cam" class="sr-only" type="file" accept="image/*" capture="environment">
+    <p class="hint">Fişi düz zemine koyun, tamamı görünsün. Arka arkaya çekebilirsiniz; okuma arkada sürer.</p>
+    <label class="link" for="gallery">Galeriden seç</label>
+    <input id="gallery" class="sr-only" type="file" accept="image/*" multiple>
+    <ul id="queue" class="list" aria-live="polite"></ul>
+  </main>
+
+  <main id="view-review" hidden>
+    <p id="review-empty" class="empty" hidden>Şüpheli fiş yok. Her şey mutabık.</p>
+    <ul id="review" class="list"></ul>
+  </main>
+
+  <nav class="tabs" aria-label="Görünüm">
+    <button type="button" data-view="capture" aria-current="page">Çek</button>
+    <button type="button" data-view="review">İncele <span id="badge" class="badge" hidden>0</span></button>
+  </nav>
+
+  <dialog id="sheet" aria-labelledby="sheet-title">
+    <form id="form" method="dialog" novalidate>
+      <div class="sheet-head">
+        <h2 id="sheet-title">Fiş</h2>
+        <button type="button" id="close" class="icon" aria-label="Kapat">×</button>
+      </div>
+      <div id="verdict" class="verdict"></div>
+      <ul id="notes" class="notes"></ul>
+      <details id="photo" class="photo">
+        <summary>Fotoğrafı göster</summary>
+        <img id="photo-img" alt="Fiş görseli">
+      </details>
+      <label>İşletme <input name="merchant_name" type="text" autocomplete="off" maxlength="255"></label>
+      <label>Tarih <input name="date" type="date"></label>
+      <div class="row3">
+        <label>Matrah <input name="subtotal_amount" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label>KDV <input name="tax_amount" type="text" inputmode="decimal" autocomplete="off"></label>
+        <label>Toplam <input name="total_amount" type="text" inputmode="decimal" autocomplete="off"></label>
+      </div>
+      <div class="row2">
+        <label>Para birimi
+          <select name="currency">
+            <option value="TRY">TL</option><option value="USD">USD</option>
+            <option value="EUR">EUR</option><option value="GBP">GBP</option>
+          </select>
+        </label>
+        <label>Kategori
+          <select name="category">
+            <option value="">—</option>
+            <option value="grocery">Market</option><option value="food_drink">Yeme-içme</option>
+            <option value="stationery">Kırtasiye</option><option value="transport">Ulaşım</option>
+            <option value="health">Sağlık</option><option value="clothing">Giyim</option>
+            <option value="electronics">Elektronik</option><option value="other">Diğer</option>
+          </select>
+        </label>
+      </div>
+      <p id="form-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="submit" id="save" class="primary">Kaydet</button>
+        <button type="button" id="skip" class="secondary" hidden>Sonraki</button>
+        <button type="button" id="delete" class="danger">Sil</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>
