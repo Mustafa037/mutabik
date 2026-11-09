@@ -1,7 +1,6 @@
 # Mimari: arka planda ne oluyor?
 
-Bu belge, bir fiş fotoğrafının sisteme girip `verified` / `flagged_for_review` damgasıyla veritabanına yazılmasına kadar geçen yolu anlatır. Mülakatta "arkada nasıl çalışıyor?" sorusunun cevabı budur.
-
+Bu belge, bir fiş fotoğrafının sisteme girip `verified` / `flagged_for_review` damgasıyla veritabanına yazılmasına kadar geçen yolu anlatır.
 ## 1. Büyük resim
 
 ```
@@ -140,8 +139,8 @@ Telefon için ayrı, ince bir arayüz; FastAPI `/m/` altında statik olarak suna
 - `backend/eval`: tüm hattın alan bazlı doğruluğunu ölçer; sentetik bozulmalarla (döndürme, bulanıklık, gürültü, loş ışık, eğiklik) dayanıklılığı gösterir. **Gerçek fişlerinizle** `python -m eval.evaluate --dir klasörünüz` çalıştırıp gerçek sayıyı README'ye yazın.
 - GitHub Actions: her push'ta testler.
 
-## 8. Bilinen sınırlar (dürüstçe)
-- Gerçek dünya doğruluğu henüz az sayıda gerçek fişle ölçülmedi; bundled örnekler kurgusaldır.
+## 8. Sınırlar
+- Doğruluk az sayıda gerçek fişle denendi, kapsamlı ölçülmedi; örnek fişler kurgusaldır.
 - Kalem (satır) bazlı ürün çıkarımı yok; yalnızca toplamlar.
 - `lower()` SQLite'ta yalnızca ASCII: Türkçe `İ/ı` ile işletme aramasında büyük/küçük harf kaçabilir.
 - İşletme birleştirme addan yapılır: iki harften fazla bozuk okunmuş ad otomatik birleşmez (elle birleştirilir). Farklı işletmelerin benzer adları (nadiren) yanlışlıkla birleşebilir; eşik bilerek yüksek (%90).
